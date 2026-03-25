@@ -205,3 +205,25 @@ cython_debug/
 marimo/_static/
 marimo/_lsp/
 __marimo__/
+
+# Dagster
+dagster_home/
+.dagster/
+storage/
+history/
+.tmp_dagster_home_*/
+
+# OS
+.DS_Store
+Thumbs.db
+
+# Test / Coverage
+.pytest_cache/
+htmlcov/
+.coverage
+*.cover
+data/
+
+# Generated test fixtures (regenerate with: python -m tests.generate_fake_data)
+tests/fixtures/
+pytest-cache-files*/
