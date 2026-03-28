@@ -33,6 +33,12 @@ class Settings(BaseSettings):
     woocommerce_timeout: int = 30
     woocommerce_requests_per_second: int = 10
 
+    # Knowledge Graph Configuration
+    knowledge_graph_url: str = ""
+    knowledge_graph_endpoint_id: str = ""
+    knowledge_graph_part_id: str = ""
+    knowledge_graph_bearer_token: str = ""
+
     # Pipeline Configuration
     max_retries: int = 3
     batch_size: int = 25

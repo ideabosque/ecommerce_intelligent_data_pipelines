@@ -8,6 +8,10 @@ from dagster_ecommerce.assets.s3_ingestion import (
     raw_product_data,
     s3_product_files,
 )
+from dagster_ecommerce.assets.knowledge_graph_sync import (
+    knowledge_graph_products,
+    woo_products_for_kg,
+)
 from dagster_ecommerce.assets.woocommerce_sync import (
     dead_letter_queue,
     woocommerce_products,
@@ -20,4 +24,6 @@ __all__ = [
     "validated_products",
     "woocommerce_products",
     "dead_letter_queue",
+    "woo_products_for_kg",
+    "knowledge_graph_products",
 ]

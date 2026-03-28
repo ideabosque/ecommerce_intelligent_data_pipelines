@@ -16,6 +16,7 @@ from dagster import (
 
 from dagster_ecommerce import assets
 from dagster_ecommerce.config.settings import settings
+from dagster_ecommerce.resources.knowledge_graph_resource import knowledge_graph_resource
 from dagster_ecommerce.resources.s3_resource import s3_resource
 from dagster_ecommerce.resources.woo_resource import woo_resource
 from dagster_ecommerce.sensors.s3_sensor import s3_product_file_sensor
@@ -23,17 +24,24 @@ from dagster_ecommerce.sensors.s3_sensor import s3_product_file_sensor
 # Load all assets from the assets module
 all_assets = load_assets_from_modules([assets])
 
-# Define the job that the sensor triggers
+# Define the job that the sensor triggers (S3 → WooCommerce pipeline)
 product_sync_job = define_asset_job(
     name="product_sync_job",
-    selection=AssetSelection.all(),
+    selection=AssetSelection.groups("ingestion", "processing", "sync"),
     description="Sync product data from S3 to WooCommerce",
+)
+
+# Separate job: WooCommerce → Knowledge Graph pipeline
+knowledge_graph_sync_job = define_asset_job(
+    name="knowledge_graph_sync_job",
+    selection=AssetSelection.groups("knowledge_graph"),
+    description="Fetch products from WooCommerce and extract into knowledge graph",
 )
 
 # Load definitions with configured resources
 defs = Definitions(
     assets=all_assets,
-    jobs=[product_sync_job],
+    jobs=[product_sync_job, knowledge_graph_sync_job],
     resources={
         "s3": s3_resource.configured(
             {
@@ -62,6 +70,14 @@ defs = Definitions(
                 "timeout": settings.woocommerce_timeout,
                 "requests_per_second": settings.woocommerce_requests_per_second,
                 "max_retries": settings.max_retries,
+            }
+        ),
+        "knowledge_graph": knowledge_graph_resource.configured(
+            {
+                "url": settings.knowledge_graph_url,
+                "endpoint_id": settings.knowledge_graph_endpoint_id,
+                "part_id": settings.knowledge_graph_part_id,
+                "bearer_token": settings.knowledge_graph_bearer_token,
             }
         ),
     },
