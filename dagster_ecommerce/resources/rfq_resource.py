@@ -52,7 +52,7 @@ mutation InsertUpdateProviderItem(
     $itemUuid: String!,
     $providerCorpExternalId: String,
     $providerItemExternalId: String,
-    $basePricePerUom: Float,
+    $basePricePerUom: SafeFloat,
     $itemSpec: JSONCamelCase,
     $updatedBy: String!
 ) {
