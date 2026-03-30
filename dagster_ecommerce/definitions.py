@@ -85,6 +85,7 @@ defs = Definitions(
                 "url": settings.knowledge_graph_url,
                 "endpoint_id": settings.knowledge_graph_endpoint_id,
                 "part_id": settings.knowledge_graph_part_id,
+                "api_key": settings.knowledge_graph_api_key,
                 "bearer_token": settings.knowledge_graph_bearer_token,
             }
         ),

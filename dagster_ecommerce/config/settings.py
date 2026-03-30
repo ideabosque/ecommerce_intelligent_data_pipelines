@@ -37,6 +37,7 @@ class Settings(BaseSettings):
     knowledge_graph_url: str = ""
     knowledge_graph_endpoint_id: str = ""
     knowledge_graph_part_id: str = ""
+    knowledge_graph_api_key: str = ""
     knowledge_graph_bearer_token: str = ""
 
     # RFQ Engine Configuration
