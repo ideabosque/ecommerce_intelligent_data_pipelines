@@ -76,7 +76,7 @@ class KnowledgeGraphResource:
 
     @property
     def graphql_endpoint(self) -> str:
-        return f"{self.url}/{self.endpoint_id}/knowledge_graph_engine_graphql"
+        return f"{self.url}/{self.endpoint_id}/knowledge_graph_graphql"
 
     def extract_product(
         self,

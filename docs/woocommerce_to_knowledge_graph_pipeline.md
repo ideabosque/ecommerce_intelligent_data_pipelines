@@ -141,12 +141,12 @@ Products are tracked in the knowledge graph using stable external identifiers:
 ### GraphQL Endpoint
 
 ```
-POST {KNOWLEDGE_GRAPH_URL}/{ENDPOINT_ID}/knowledge_graph_engine_graphql
+POST {KNOWLEDGE_GRAPH_URL}/{ENDPOINT_ID}/knowledge_graph_graphql
 ```
 
 **Example:**
 ```
-POST https://api.example.com/gpt/knowledge_graph_engine_graphql
+POST https://api.example.com/gpt/knowledge_graph_graphql
 ```
 
 ### Authentication
@@ -385,7 +385,7 @@ class KnowledgeGraphResource:
     
     @property
     def graphql_endpoint(self) -> str:
-        return f"{self.url}/{self.endpoint_id}/knowledge_graph_engine_graphql"
+        return f"{self.url}/{self.endpoint_id}/knowledge_graph_graphql"
     
     def extract_product(self, text, document_source, document_external_id):
         """Send product text for extraction."""
