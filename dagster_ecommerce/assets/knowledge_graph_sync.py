@@ -8,6 +8,11 @@ from __future__ import annotations
 
 from dagster import MetadataValue, asset
 
+from dagster_ecommerce.transformations.woo_to_kg import (
+    transform_to_item_text,
+    build_external_id
+)
+
 
 @asset(
     description="Products fetched from WooCommerce for knowledge graph extraction",
@@ -93,8 +98,8 @@ def knowledge_graph_products(
     for i, product in enumerate(woo_products_for_kg):
         product_name = product.get("name", product.get("sku", f"product-{i}"))
         try:
-            text = kg.format_product_text(product)
-            external_id = kg.build_external_id(product)
+            text = transform_to_item_text(product)
+            external_id = build_external_id(product)
 
             result = kg.extract_product(
                 text=text,
