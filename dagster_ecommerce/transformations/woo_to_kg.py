@@ -185,7 +185,8 @@ def validate_kg_product(woo_product: dict) -> Tuple[bool, List[str]]:
 
 def transform_to_item_text(
     woo_product: dict,
-    item_uuid: Optional[str] = None
+    item_uuid: Optional[str] = None,
+    partition_key: Optional[str] = None,
 ) -> str:
     """Transform WooCommerce product to Knowledge Graph Item payload.
 
@@ -210,6 +211,8 @@ def transform_to_item_text(
     item_type = extract_category(woo_product)
 
     lines = []
+    lines.append(f"Partition Key: {partition_key}")
+    lines.append(f"Name: {item_external_id}-{item_name}")
     lines.append(f"Item Name: {item_name}")
     lines.append(f"Item Type: {item_type}")
     lines.append(f"Item Description: {item_description}")
