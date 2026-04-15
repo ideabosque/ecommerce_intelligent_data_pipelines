@@ -8,6 +8,11 @@ from __future__ import annotations
 
 from dagster import MetadataValue, asset
 
+from dagster_ecommerce.transformations.woo_to_kg import (
+    transform_to_item_text,
+    build_external_id
+)
+
 
 @asset(
     description="Products fetched from WooCommerce for knowledge graph extraction",
@@ -47,7 +52,7 @@ def woo_products_for_kg(context) -> list[dict]:
     description="Products extracted into knowledge graph entities and relationships",
     compute_kind="api",
     group_name="knowledge_graph",
-    required_resource_keys={"knowledge_graph"},
+    required_resource_keys={"knowledge_graph", "rfq"},
 )
 def knowledge_graph_products(
     context,
@@ -67,6 +72,7 @@ def knowledge_graph_products(
         Dict with extraction summary.
     """
     kg = context.resources.knowledge_graph
+    rfq = context.resources.rfq
 
     if not woo_products_for_kg:
         context.log.info("No products to extract into knowledge graph")
@@ -89,17 +95,21 @@ def knowledge_graph_products(
     total_entities = 0
     total_relationships = 0
     errors = []
+    partition_key = f"{kg.endpoint_id}#{kg.part_id}"
 
     for i, product in enumerate(woo_products_for_kg):
+        item_external_id = build_external_id(product)
         product_name = product.get("name", product.get("sku", f"product-{i}"))
+        # Check if item already exists (for idempotent upsert)
+        existing_item = rfq.query_item_by_external_id(item_external_id)
+        item_uuid = existing_item["itemUuid"] if existing_item else None
         try:
-            text = kg.format_product_text(product)
-            external_id = kg.build_external_id(product)
+            text = transform_to_item_text(product, item_uuid, partition_key)
 
             result = kg.extract_product(
                 text=text,
                 document_source="woocommerce",
-                document_external_id=external_id,
+                document_external_id=item_external_id,
             )
 
             entities = result.get("entitiesExtracted", 0) or 0

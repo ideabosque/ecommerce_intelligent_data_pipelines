@@ -17,6 +17,7 @@ from dagster import (
 from dagster_ecommerce import assets
 from dagster_ecommerce.config.settings import settings
 from dagster_ecommerce.resources.knowledge_graph_resource import knowledge_graph_resource
+from dagster_ecommerce.resources.rfq_resource import rfq_resource
 from dagster_ecommerce.resources.s3_resource import s3_resource
 from dagster_ecommerce.resources.woo_resource import woo_resource
 from dagster_ecommerce.sensors.s3_sensor import s3_product_file_sensor
@@ -38,10 +39,17 @@ knowledge_graph_sync_job = define_asset_job(
     description="Fetch products from WooCommerce and extract into knowledge graph",
 )
 
+# RFQ sync job: WooCommerce → RFQ Engine pipeline
+rfq_sync_job = define_asset_job(
+    name="rfq_sync_job",
+    selection=AssetSelection.groups("rfq"),
+    description="Sync WooCommerce products to RFQ Engine",
+)
+
 # Load definitions with configured resources
 defs = Definitions(
     assets=all_assets,
-    jobs=[product_sync_job, knowledge_graph_sync_job],
+    jobs=[product_sync_job, knowledge_graph_sync_job, rfq_sync_job],
     resources={
         "s3": s3_resource.configured(
             {
@@ -77,7 +85,21 @@ defs = Definitions(
                 "url": settings.knowledge_graph_url,
                 "endpoint_id": settings.knowledge_graph_endpoint_id,
                 "part_id": settings.knowledge_graph_part_id,
+                "api_key": settings.knowledge_graph_api_key,
                 "bearer_token": settings.knowledge_graph_bearer_token,
+            }
+        ),
+        "rfq": rfq_resource.configured(
+            {
+                "base_url": settings.rfq_engine_base_url,
+                "endpoint_id": settings.rfq_engine_endpoint_id,
+                "part_id": settings.rfq_engine_part_id,
+                "api_key": settings.rfq_engine_api_key,
+                "bearer_token": settings.rfq_engine_bearer_token,
+                "updated_by": settings.rfq_engine_updated_by,
+                "timeout": settings.rfq_engine_timeout,
+                "requests_per_second": settings.rfq_engine_requests_per_second,
+                "max_retries": settings.max_retries,
             }
         ),
     },

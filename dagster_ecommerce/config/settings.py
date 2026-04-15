@@ -37,7 +37,21 @@ class Settings(BaseSettings):
     knowledge_graph_url: str = ""
     knowledge_graph_endpoint_id: str = ""
     knowledge_graph_part_id: str = ""
+    knowledge_graph_api_key: str = ""
     knowledge_graph_bearer_token: str = ""
+
+    # RFQ Engine Configuration
+    rfq_engine_base_url: str = ""  # RFQ Engine base URL
+    rfq_engine_endpoint_id: str = ""  # Endpoint ID (URL path segment, e.g., "gpt")
+    rfq_engine_part_id: str = ""  # Partition ID for data isolation (Part-Id header)
+    rfq_engine_api_key: str = ""  # x-api-key header (required)
+    rfq_engine_bearer_token: str = ""  # Optional Authorization: Bearer header
+    rfq_engine_timeout: int = 60
+    rfq_engine_requests_per_second: int = 5
+    rfq_engine_updated_by: str = "dagster-pipeline"  # Actor name for updatedBy field
+    rfq_engine_provider_external_id: str = "woocommerce"  # Provider corp identifier
+    rfq_engine_default_uom: str = "EA"  # Default unit of measure
+    rfq_engine_enable_price_tiers: bool = False  # Enable tier pricing sync (Scope v2)
 
     # Pipeline Configuration
     max_retries: int = 3

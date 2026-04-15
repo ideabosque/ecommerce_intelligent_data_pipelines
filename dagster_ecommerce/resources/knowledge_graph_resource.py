@@ -33,12 +33,42 @@ mutation ExecuteExtract(
 }
 """
 
+GRAPH_SCHEMA = {
+    "node_types": [
+        {
+            "label": "Item",
+            "description": "A item with detailed information",
+            "properties": [
+                {"name": "partition_key", "type": "STRING", "required": True},
+                {"name": "name", "type": "STRING", "required": True},
+                {"name": "item_name", "type": "STRING", "required": True},
+                {"name": "uom", "type": "STRING"},
+                {"name": "item_type", "type": "STRING"},
+                {"name": "item_description", "type": "STRING"},
+                {"name": "item_uuid", "type": "STRING", "required": True},
+                {"name": "item_external_id", "type": "STRING"},
+                {"name": "created_at", "type": "ZONED_DATETIME"},
+                {"name": "updated_at", "type": "ZONED_DATETIME"}
+            ],
+            # "constraints": [
+            #     {"property_name": "item_external_id", "type": "UNIQUENESS", "node_type": "Item"}
+            # ]
+        }
+    ],
+    "relationship_types": [],
+    "patterns": []
+}
+
 
 class KnowledgeGraphResource:
     """Knowledge Graph Engine API client.
 
     Sends product data to a GraphQL-based knowledge graph extraction endpoint
     that parses product text into entities and relationships.
+
+    Supports two authentication methods:
+    - x-api-key header (primary, always used)
+    - Authorization: Bearer header (optional, for additional auth)
     """
 
     def __init__(
@@ -46,12 +76,14 @@ class KnowledgeGraphResource:
         url: str,
         endpoint_id: str,
         part_id: str,
-        bearer_token: str,
+        api_key: str | None = None,
+        bearer_token: str | None = None,
         timeout: int = 120,
     ):
         self.url = url.rstrip("/")
         self.endpoint_id = endpoint_id
         self.part_id = part_id
+        self.api_key = api_key
         self.bearer_token = bearer_token
         self.timeout = timeout
         self._session = requests.Session()
@@ -59,13 +91,18 @@ class KnowledgeGraphResource:
             {
                 "Content-Type": "application/json",
                 "Part-Id": self.part_id,
-                "Authorization": f"Bearer {self.bearer_token}",
             }
         )
+        if self.api_key:
+            self._session.headers.update({"x-api-key": self.api_key})
+        if self.bearer_token:
+            self._session.headers.update(
+                {"Authorization": f"Bearer {self.bearer_token}"}
+            )
 
     @property
     def graphql_endpoint(self) -> str:
-        return f"{self.url}/{self.endpoint_id}/knowledge_graph_engine_graphql"
+        return f"{self.url}/{self.endpoint_id}/knowledge_graph_graphql"
 
     def extract_product(
         self,
@@ -89,9 +126,8 @@ class KnowledgeGraphResource:
             "text": text,
             "documentSource": document_source,
             "documentExternalId": document_external_id,
+            "graphSchema": graph_schema if graph_schema else GRAPH_SCHEMA.get("item")
         }
-        if graph_schema:
-            variables["graphSchema"] = graph_schema
 
         payload = {
             "query": EXTRACT_MUTATION,
@@ -114,95 +150,24 @@ class KnowledgeGraphResource:
 
         return result.get("data", {}).get("executeExtract", {})
 
-    def format_product_text(self, product: dict) -> str:
-        """Convert a WooCommerce product dict into a text representation for extraction.
-
-        Args:
-            product: WooCommerce product data dict.
-
-        Returns:
-            Formatted text string describing the product.
-        """
-        lines = []
-
-        if product.get("name"):
-            lines.append(f"Product: {product['name']}")
-        if product.get("sku"):
-            lines.append(f"SKU: {product['sku']}")
-        if product.get("type"):
-            lines.append(f"Type: {product['type']}")
-        if product.get("status"):
-            lines.append(f"Status: {product['status']}")
-        if product.get("regular_price"):
-            lines.append(f"Price: {product['regular_price']}")
-        if product.get("sale_price"):
-            lines.append(f"Sale Price: {product['sale_price']}")
-        if product.get("description"):
-            lines.append(f"Description: {product['description']}")
-        if product.get("short_description"):
-            lines.append(f"Short Description: {product['short_description']}")
-
-        # Categories
-        categories = product.get("categories")
-        if categories:
-            cat_names = [
-                c["name"] if isinstance(c, dict) else str(c) for c in categories
-            ]
-            lines.append(f"Categories: {', '.join(cat_names)}")
-
-        # Tags
-        tags = product.get("tags")
-        if tags:
-            tag_names = [
-                t["name"] if isinstance(t, dict) else str(t) for t in tags
-            ]
-            lines.append(f"Tags: {', '.join(tag_names)}")
-
-        # Attributes
-        attributes = product.get("attributes")
-        if attributes:
-            for attr in attributes:
-                if isinstance(attr, dict):
-                    name = attr.get("name", "")
-                    options = attr.get("options", [])
-                    if name and options:
-                        lines.append(f"{name}: {', '.join(options)}")
-
-        # Inventory
-        stock_status = product.get("stock_status")
-        if stock_status:
-            in_stock = stock_status == "instock"
-            lines.append(f"In Stock: {in_stock}")
-
-        if product.get("weight"):
-            lines.append(f"Weight: {product['weight']}")
-
-        return "\n".join(lines)
-
-    def build_external_id(self, product: dict) -> str:
-        """Build a document external ID from product data.
-
-        Args:
-            product: WooCommerce product data dict.
-
-        Returns:
-            External ID string like "product-SKU" or "product-NAME-slug".
-        """
-        sku = product.get("sku")
-        if sku:
-            return f"product-{sku}"
-
-        name = product.get("name", "unknown")
-        slug = name.lower().replace(" ", "-")[:50]
-        return f"product-{slug}"
-
 
 @resource(
     config_schema={
         "url": Field(String, description="Knowledge Graph Engine base URL"),
         "endpoint_id": Field(String, description="Endpoint ID"),
         "part_id": Field(String, description="Partition ID"),
-        "bearer_token": Field(String, description="Bearer token for auth"),
+        "api_key": Field(
+            String,
+            default_value="",
+            is_required=False,
+            description="Optional x-api-key header value",
+        ),
+        "bearer_token": Field(
+            String,
+            default_value="",
+            is_required=False,
+            description="Optional Authorization: Bearer token",
+        ),
         "timeout": Field(
             int,
             default_value=120,
@@ -212,10 +177,12 @@ class KnowledgeGraphResource:
     description="Knowledge Graph Engine API client",
 )
 def knowledge_graph_resource(context):
+    config = context.resource_config
     return KnowledgeGraphResource(
-        url=context.resource_config["url"],
-        endpoint_id=context.resource_config["endpoint_id"],
-        part_id=context.resource_config["part_id"],
-        bearer_token=context.resource_config["bearer_token"],
-        timeout=context.resource_config["timeout"],
+        url=config["url"],
+        endpoint_id=config["endpoint_id"],
+        part_id=config["part_id"],
+        api_key=config.get("api_key") or None,
+        bearer_token=config.get("bearer_token") or None,
+        timeout=config["timeout"],
     )
